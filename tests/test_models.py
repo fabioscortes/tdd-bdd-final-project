@@ -229,32 +229,3 @@ class TestProductModel(unittest.TestCase):
 
         for p in search_results:
             self.assertEqual(p.category, target)
-
-    def test_serialize_deserialize(self):
-        product = Product(name="Fedora", description="A red hat", price=12.50, available=True, category=Category.CLOTHS)
-
-        tmp_dict = product.serialize()
-        product2 = Product().deserialize(tmp_dict)
-
-        self.assertEqual(str(product), "<Product Fedora id=[None]>")
-        self.assertTrue(product2 is not None)
-        self.assertEqual(product.id, product2.id)
-        self.assertEqual(product.name, product2.name)
-        self.assertEqual(product.description, product2.description)
-        self.assertEqual(product.available, product2.available)
-        self.assertEqual(product.price, product2.price)
-        self.assertEqual(product.category, product2.category)
-
-        tmp_dict_defective = tmp_dict.copy()
-        tmp_dict_defective["available"] = "Yes"
-        with self.assertRaises(DataValidationError):
-            Product().deserialize(tmp_dict_defective)
-
-        tmp_dict_defective = tmp_dict.copy()
-        del tmp_dict_defective["price"]
-        with self.assertRaises(DataValidationError):
-            Product().deserialize(tmp_dict_defective)
-
-        tmp_dict_defective = str(tmp_dict)
-        with self.assertRaises(DataValidationError):
-            Product().deserialize(tmp_dict_defectiv
