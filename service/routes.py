@@ -20,7 +20,7 @@ Product Store Service with UI
 """
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
-from service.models import Product
+from service.models import Product, Category
 from service.common import status  # HTTP Status Codes
 from . import app
 
@@ -89,8 +89,7 @@ def create_products():
     #
     # Uncomment this line of code once you implement READ A PRODUCT
     #
-    # location_url = url_for("get_products", product_id=product.id, _external=True)
-    location_url = "/"  # delete once READ is implemented
+    location_url = url_for("get_product", product_id=product.id, _external=True)
     return jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
 
 
@@ -101,6 +100,36 @@ def create_products():
 #
 # PLACE YOUR CODE TO LIST ALL PRODUCTS HERE
 #
+@app.route("/products", methods=["GET"])
+def get_products():
+    avai = request.args.get('available', default=None, type=str)
+    name = request.args.get('name', default=None, type=str)
+    cate = request.args.get('category', default=None, type=str)
+
+    app.logger.info("GET /products %s", request.args)
+
+    if cate is not None and cate != "UNKNOWN":
+        if cate.isdigit():
+            cate = int(cate)
+            cate = Category(cate)  # lookup by int value
+        else:
+            cate = Category[cate]  # lookup by name
+
+        products = Product.find_by_category(cate)
+    elif avai is not None:
+        if avai.lower() in ["true", "yes", "1"]:
+            avai = True
+        else:
+            avai = False
+        products = Product.find_by_availability(avai)
+    elif name is not None:
+        products = Product.find_by_name(name)
+    else:
+        products = Product.all()
+
+    msg = [p.serialize() for p in products]
+    return jsonify(msg), status.HTTP_200_OK
+
 
 ######################################################################
 # R E A D   A   P R O D U C T
@@ -110,13 +139,52 @@ def create_products():
 # PLACE YOUR CODE HERE TO READ A PRODUCT
 #
 
+@app.route("/products/<product_id>", methods=["GET"])
+def get_product(product_id):
+
+    product = Product.find(product_id)
+    app.logger.info("GET /products/<product_id> %s", product_id)
+
+    if product is None:
+        app.logger.info("GET /products/<product_id> %s not found", product_id)
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            "No said product",
+        )
+
+    msg = product.serialize()
+    return jsonify(msg), status.HTTP_200_OK
+
 ######################################################################
 # U P D A T E   A   P R O D U C T
 ######################################################################
-
 #
 # PLACE YOUR CODE TO UPDATE A PRODUCT HERE
 #
+
+
+@app.route("/products/<product_id>", methods=["PUT"])
+def update_product(product_id):
+
+    product = Product.find(product_id)
+    app.logger.info("PUT /products/<product_id> %s", product_id)
+
+    if product is None:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            "No said product",
+        )
+
+    check_content_type("application/json")
+    data = request.get_json()
+
+    product.deserialize(data)  # FIXME: no error check
+    product.id = product_id
+    product.update()
+
+    msg = product.serialize()
+    return jsonify(msg), status.HTTP_200_OK
+
 
 ######################################################################
 # D E L E T E   A   P R O D U C T
@@ -126,3 +194,24 @@ def create_products():
 #
 # PLACE YOUR CODE TO DELETE A PRODUCT HERE
 #
+@app.route("/products/<product_id>", methods=["DELETE"])
+def delete_product(product_id):
+
+    product = Product.find(product_id)
+
+    if product is None:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            "No said product",
+        )
+
+    product.delete()
+
+    return "OK", status.HTTP_204_NO_CONTENT
+
+
+# @app.route('/', defaults={'path': ''})
+# @app.route('/<path:path>')
+# def catch_all(path):
+#     app.logger.info('You want path: %s', path)
+#     return 'You want path: %s' % path, status.HTTP_404_NOT_FOUND
