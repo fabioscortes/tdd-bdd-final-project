@@ -24,15 +24,35 @@ from service.models import Product, Category
 
 class ProductFactory(factory.Factory):
     """Creates fake products for testing"""
-
     class Meta:
         """Maps factory to data model"""
-
         model = Product
-
     id = factory.Sequence(lambda n: n)
-    name = factory.Faker("pystr", min_chars=5, max_chars=100)
-    description = factory.Faker("pystr", min_chars=5, max_chars=250)
-    price = factory.fuzzy.FuzzyDecimal(low=0.0)
-    available = factory.Faker("pybool")
-    category = FuzzyChoice(Category)
+    name = FuzzyChoice(
+        choices=[
+            "Hat",
+            "Pants",
+            "Shirt",
+            "Apple",
+            "Banana",
+            "Pots",
+            "Towels",
+            "Ford",
+            "Chevy",
+            "Hammer",
+            "Wrench"
+        ]
+    )
+    description = factory.Faker("text")
+    price = FuzzyDecimal(0.5, 2000.0, 2)
+    available = FuzzyChoice(choices=[True, False])
+    category = FuzzyChoice(
+        choices=[
+            Category.UNKNOWN,
+            Category.CLOTHS,
+            Category.FOOD,
+            Category.HOUSEWARES,
+            Category.AUTOMOTIVE,
+            Category.TOOLS,
+        ]
+    )
